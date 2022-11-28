@@ -1,14 +1,11 @@
-FROM alpine/git as clone 
-MKDIR /app
-WORKDIR /app
-RUN git clone https://github.com/sac7u2/docker-demo.git
+FROM openjdk:11-jdk
+VOLUME /tmp
 
-FROM maven:3.5-jdk-8-alpine as build 
-WORKDIR /app
-COPY --from=clone /app/docker-demo/ /app 
-RUN mvn install
+RUN useradd -d /home/appuser -m -s /bin/bash appuser
+USER appuser
 
-FROM openjdk:8-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/docker-demo-0.0.1-SNAPSHOT.jar /app
-CMD ["java -jar docker-demo.0.0.1-SNAPSHOT.jar"]
+HEALTHCHECK --interval=5m --timeout=3s CMD curl -f http://localhost:8080/actuator/health/ || exit 1
+
+ARG JAR_FILE
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
